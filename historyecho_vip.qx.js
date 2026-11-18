@@ -1,4 +1,4 @@
-console.log('[Y-ALIVE] v8 ' + $request.method + ' ' + $request.url);
+console.log('[Y-ALIVE] v9 ' + $request.method + ' ' + $request.url);
 
 const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|is_permanent|isPermanent|has_vip)$/;
 const CAN_KEYS  = /^can_(?!admin)/;
@@ -20,31 +20,20 @@ function fixEnd(v) {
 
 let hits = [];
 function walk(o, path) {
-  if (Array.isArray(o)) { o.forEach((x, i) => walk(x, path + '[' + i + ']')); return; }
+  if (Array.isArray(o)) { o.forEach(function (x, i) { walk(x, path + '[' + i + ']'); }); return; }
   if (!o || typeof o !== 'object') return;
   for (const k of Object.keys(o)) {
     const v = o[k], p = path ? path + '.' + k : k;
-    if (TRUE_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->true'); o[k] = true; continue; }
-    if (CAN_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->true'); o[k] = true; continue; }
-    if (NEED_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->false'); o[k] = false; continue; }
-    if (END_KEYS.test(k) && (typeof v === 'number' || typeof v === 'string' || v === null)) { hits.push(p + ':' + JSON.stringify(v) + '->' + fixEnd(v)); o[k] = fixEnd(v); continue; }
-    if (DAY_KEYS.test(k) && typeof v === 'number') { hits.push(p + ':' + v + '->3650'); o[k] = 3650; continue; }
-    if (k === 'member_level' && typeof v === 'string' && /^(none|)$/i.test(v)) { hits.push(p + ':' + v + '->year'); o[k] = 'year'; continue; }
-    if (k === 'role_id' && typeof v === 'number' && v < 4) { hits.push(p + ':' + v + '->4'); o[k] = 4; continue; }
-    if ((k === 'role_name' || /\.role\.name$/.test(p)) && v === '普通用户') { hits.push(p + ':普通用户->高级会员'); o[k] = '高级会员'; continue; }
+    if (TRUE_KEYS.test(k) && typeof v === 'boolean') { hits.push(p); o[k] = true; continue; }
+    if (CAN_KEYS.test(k) && typeof v === 'boolean') { hits.push(p); o[k] = true; continue; }
+    if (NEED_KEYS.test(k) && typeof v === 'boolean') { hits.push(p); o[k] = false; continue; }
+    if (END_KEYS.test(k) && (typeof v === 'number' || typeof v === 'string' || v === null)) { hits.push(p); o[k] = fixEnd(v); continue; }
+    if (DAY_KEYS.test(k) && typeof v === 'number') { hits.push(p); o[k] = 3650; continue; }
+    if (k === 'member_level' && typeof v === 'string' && /^(none|)$/i.test(v)) { hits.push(p); o[k] = 'year'; continue; }
+    if (k === 'role_id' && typeof v === 'number' && v < 4) { hits.push(p); o[k] = 4; continue; }
+    if ((k === 'role_name' || /\.role\.name$/.test(p)) && v === '普通用户') { hits.push(p); o[k] = '高级会员'; continue; }
     walk(v, p);
   }
-}
-
-function figSummary(j) {
-  const arr = j && j.data && j.data.figure_lists;
-  if (!Array.isArray(arr)) return null;
-  return arr.map(function (g, i) {
-    const o = { i: i };
-    ['id', 'name', 'title', 'type', 'key', 'code', 'need_vip', 'count', 'total', 'num'].forEach(function (k) { if (k in g) o[k] = g[k]; });
-    o.len = Array.isArray(g.list) ? g.list.length : (g.list ? 'obj' : 'null');
-    return o;
-  });
 }
 
 const url = $request.url;
@@ -53,11 +42,21 @@ const short = url.replace(/^https?:\/\/[^\/]+/, '');
 
 try {
   const j = JSON.parse(body);
-  const fs = figSummary(j);
-  if (fs) {
-    const rb = ($request && $request.body) ? String($request.body).substring(0, 300) : '';
-    console.log('[Y-FL] ' + short + ' req=' + rb);
-    console.log('[Y-FLG] ' + JSON.stringify(fs));
+  const arr = j && j.data && j.data.figure_lists;
+  if (Array.isArray(arr)) {
+    arr.forEach(function (g, i) {
+      if (!g) return;
+      const gk = Object.keys(g).join(',');
+      const first = Array.isArray(g.list) && g.list[0] ? g.list[0] : null;
+      const ik = first ? Object.keys(first).join(',') : '';
+      const ek = first && first.entity ? Object.keys(first.entity).join(',') : '';
+      console.log('[Y-K] i=' + i + ' name=' + g.name + ' need_vip=' + g.need_vip + ' len=' + (g.list ? g.list.length : -1));
+      console.log('[Y-KK] i=' + i + ' G={' + gk + '}');
+      if (ik) console.log('[Y-KK] i=' + i + ' I={' + ik + '} E={' + ek + '}');
+      if (first && i >= 2 && i <= 4) {
+        console.log('[Y-I] i=' + i + ' ' + JSON.stringify(first).substring(0, 700));
+      }
+    });
   }
   walk(j, '');
   if (hits.length) {
