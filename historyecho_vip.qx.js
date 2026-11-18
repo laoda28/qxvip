@@ -1,4 +1,4 @@
-console.log('[Y-ALIVE] v7 ' + $request.method + ' ' + $request.url);
+console.log('[Y-ALIVE] v8 ' + $request.method + ' ' + $request.url);
 
 const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|is_permanent|isPermanent|has_vip)$/;
 const CAN_KEYS  = /^can_(?!admin)/;
@@ -7,7 +7,6 @@ const END_KEYS  = /^(vip_end_time|vipEndTime|memberVipEndTime|member_vip_end_tim
 const DAY_KEYS  = /^(have_days|haveDays|remain_days|remainDays|vip_days)$/;
 
 const DATE_STR = '2099-12-31 23:59:59';
-const FULL = /(figure|contemporary|entity|person|relation|dynasty|era|learn_index|index)/i;
 
 function fixEnd(v) {
   if (typeof v === 'number') return v > 1e12 ? 4102444800000 : 4102444800;
@@ -37,21 +36,32 @@ function walk(o, path) {
   }
 }
 
+function figSummary(j) {
+  const arr = j && j.data && j.data.figure_lists;
+  if (!Array.isArray(arr)) return null;
+  return arr.map(function (g, i) {
+    const o = { i: i };
+    ['id', 'name', 'title', 'type', 'key', 'code', 'need_vip', 'count', 'total', 'num'].forEach(function (k) { if (k in g) o[k] = g[k]; });
+    o.len = Array.isArray(g.list) ? g.list.length : (g.list ? 'obj' : 'null');
+    return o;
+  });
+}
+
 const url = $request.url;
 let body = ($response && $response.body) || '';
 const short = url.replace(/^https?:\/\/[^\/]+/, '');
 
-if (FULL.test(url)) {
-  const rb = ($request && $request.body) ? String($request.body).substring(0, 600) : '';
-  console.log('[Y-REQ] ' + short + '  ' + rb);
-  if (body.length) console.log('[Y-FULL] ' + short + '  ' + body.substring(0, 3500));
-}
-
 try {
   const j = JSON.parse(body);
+  const fs = figSummary(j);
+  if (fs) {
+    const rb = ($request && $request.body) ? String($request.body).substring(0, 300) : '';
+    console.log('[Y-FL] ' + short + ' req=' + rb);
+    console.log('[Y-FLG] ' + JSON.stringify(fs));
+  }
   walk(j, '');
   if (hits.length) {
-    console.log('[Y-HIT] ' + short + '  ' + hits.join(' | '));
+    console.log('[Y-HIT] ' + short + '  ' + hits.length + ' changes');
     body = JSON.stringify(j);
   }
 } catch (e) {
