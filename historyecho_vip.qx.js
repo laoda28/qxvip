@@ -1,10 +1,10 @@
-console.log('[Y-ALIVE] v5 ' + $request.method + ' ' + $request.url);
+console.log('[Y-ALIVE] v6 ' + $request.method + ' ' + $request.url);
 
-const FULL = /(get_user_info|log_come)/;
-const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|member_status)$/;
+const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|is_permanent|isPermanent|has_vip)$/;
+const CAN_KEYS  = /^can_(?!admin)/;
 const NEED_KEYS = /^(need_vip|needVip|need_pay|pay_required|require_vip|requireVip|is_locked|locked|vip_required)$/;
 const END_KEYS  = /^(vip_end_time|vipEndTime|memberVipEndTime|member_vip_end_time|vip_expire|vipExpire|vip_expire_time|expire_time|expires_at|expired_at|vip_end|vipEnd|member_expire|member_expire_time|vip_expire_at|vip_end_date)$/;
-const LEVEL_KEYS= /^(vip_level|vipLevel|vip_type|vipType|vip_grade|member_level|level)$/;
+const DAY_KEYS  = /^(have_days|haveDays|remain_days|remainDays|vip_days)$/;
 
 const DATE_STR = '2099-12-31 23:59:59';
 
@@ -25,9 +25,13 @@ function walk(o, path) {
   for (const k of Object.keys(o)) {
     const v = o[k], p = path ? path + '.' + k : k;
     if (TRUE_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->true'); o[k] = true; continue; }
+    if (CAN_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->true'); o[k] = true; continue; }
     if (NEED_KEYS.test(k) && typeof v === 'boolean') { hits.push(p + ':' + v + '->false'); o[k] = false; continue; }
     if (END_KEYS.test(k) && (typeof v === 'number' || typeof v === 'string' || v === null)) { hits.push(p + ':' + JSON.stringify(v) + '->' + fixEnd(v)); o[k] = fixEnd(v); continue; }
-    if (LEVEL_KEYS.test(k) && typeof v === 'number' && v <= 0) { hits.push(p + ':' + v + '->1'); o[k] = 1; continue; }
+    if (DAY_KEYS.test(k) && typeof v === 'number') { hits.push(p + ':' + v + '->3650'); o[k] = 3650; continue; }
+    if (k === 'member_level' && typeof v === 'string' && /^(none|)$/i.test(v)) { hits.push(p + ':' + v + '->year'); o[k] = 'year'; continue; }
+    if (k === 'role_id' && typeof v === 'number' && v < 4) { hits.push(p + ':' + v + '->4'); o[k] = 4; continue; }
+    if ((k === 'role_name' || /\.role\.name$/.test(p)) && v === '普通用户') { hits.push(p + ':普通用户->高级会员'); o[k] = '高级会员'; continue; }
     walk(v, p);
   }
 }
@@ -35,10 +39,6 @@ function walk(o, path) {
 const url = $request.url;
 let body = ($response && $response.body) || '';
 const short = url.replace(/^https?:\/\/[^\/]+/, '');
-
-if (FULL.test(url) && body.length) {
-  console.log('[Y-FULL] ' + short + '  ' + body.substring(0, 4000));
-}
 
 try {
   const j = JSON.parse(body);
