@@ -1,8 +1,6 @@
-/**
- * 历史年轮 诊断 v3 —— Quantumult X
- */
-const HOT = /(user|permission|profile|member|vip|pricing|order|pay|token|login|subscription|me\/)/i;
+console.log('[Y-ALIVE] v3.1 ' + $request.method + ' ' + $request.url);
 
+const HOT = /(user|permission|profile|member|vip|pricing|order|pay|token|login|subscription|\/me\/)/i;
 const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|member_status)$/;
 const NEED_KEYS = /^(need_vip|needVip|need_pay|pay_required|require_vip|requireVip|is_locked|locked|vip_required)$/;
 const END_KEYS  = /^(vip_end_time|vipEndTime|memberVipEndTime|member_vip_end_time|vip_expire|vipExpire|vip_expire_time|expire_time|expires_at|expired_at|vip_end|vipEnd|member_expire|member_expire_time)$/;
@@ -27,9 +25,8 @@ function walk(o, path) {
 }
 
 const url = $request.url;
-let body = $response.body || '';
+let body = ($response && $response.body) || '';
 const short = url.replace(/^https?:\/\/[^\/]+/, '');
-console.log('[Y-URL] ' + $response.statusCode + ' ' + short);
 
 try {
   const j = JSON.parse(body);
@@ -41,6 +38,6 @@ try {
     console.log('[Y-BODY] ' + short + '  ' + body.substring(0, 2500));
   }
 } catch (e) {
-  if (HOT.test(url)) console.log('[Y-TEXT] ' + short + '  ' + body.substring(0, 600));
+  console.log('[Y-ERR] ' + short + ' ' + e + ' len=' + body.length);
 }
 $done({ body });
