@@ -1,10 +1,9 @@
 /**
- * 历史年轮 (com.yearsmap.app) VIP 改写 + 记录 —— Quantumult X
+ * 历史年轮 VIP 改写 v2 —— Quantumult X
  */
-
-const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user)$/;
+const TRUE_KEYS = /^(is_vip|isVip|isVIP|vip|is_member|isMember|is_premium|isPremium|premium|is_pro|isPro|subscribed|is_subscribed|isSubscribed|vip_status|is_vip_user|member_status)$/;
 const NEED_KEYS = /^(need_vip|needVip|need_pay|pay_required|require_vip|requireVip|is_locked|locked|vip_required)$/;
-const END_KEYS  = /^(vip_end_time|vipEndTime|memberVipEndTime|member_vip_end_time|vip_expire|vipExpire|vip_expire_time|expire_time|expires_at|expired_at|vip_end|vipEnd)$/;
+const END_KEYS  = /^(vip_end_time|vipEndTime|memberVipEndTime|member_vip_end_time|vip_expire|vipExpire|vip_expire_time|expire_time|expires_at|expired_at|vip_end|vipEnd|member_expire|member_expire_time)$/;
 
 function fixEnd(v) {
   if (typeof v === 'string') return /^\d+$/.test(v) ? (v.length >= 13 ? '4102444800000' : '4102444800') : '4102444800';
@@ -29,13 +28,13 @@ let body = $response.body || '';
 try {
   const j = JSON.parse(body);
   walk(j, '');
-  if (hits.length) { console.log('[YEARS] ' + $request.url + '  ' + hits.join(' | ')); }
-  body = JSON.stringify(j);
+  if (hits.length) {
+    console.log('[YEARS-HIT] ' + $request.url + '  ' + hits.join(' | '));
+    body = JSON.stringify(j);
+  } else if (/vip|permission|member|pricing|subscri/i.test(body)) {
+    console.log('[YEARS-RAW] ' + $request.url + '  ' + body.substring(0, 1200));
+  }
 } catch (e) {
-  const before = body;
-  body = body.replace(/"is_vip"\s*:\s*false/g, '"is_vip":true')
-             .replace(/"need_vip"\s*:\s*true/g, '"need_vip":false')
-             .replace(/"vip_end_time"\s*:\s*(null|\d+)/g, '"vip_end_time":4102444800');
-  if (body !== before) console.log('[YEARS] text-rewrite ' + $request.url);
+  console.log('[YEARS-NONJSON] ' + $request.url + '  ' + body.substring(0, 400));
 }
 $done({ body });
